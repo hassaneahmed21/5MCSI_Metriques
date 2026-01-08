@@ -40,62 +40,35 @@ def histogramme():
 def contact():
     return render_template("contact.html")
 
-@app.route('/extract-minutes/<date_string>')
-def extract_minutes(date_string):
-    date_object = datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%SZ')
-    minutes = date_object.minute
-    return jsonify({'minutes': minutes})
+@app.route("/commits/")
+def commits_page():
+    return render_template("commits.html")
 
+@app.route('/commits-data/')
+def commits_data():
+    url = 'https://api.github.com/repos/OpenRSI/5MCSI_Metriques/commits'
 
+    # Appel HTTP avec urllib (comme pour Tawarano)
+    response = urlopen(url)
+    raw_content = response.read()
+    commits_json = json.loads(raw_content.decode('utf-8'))
 
+    minutes_count = {}
 
-GITHUB_API_URL = "https://api.github.com/repos/OpenRSI/5MCSI_Metriques/commits"
-
-def fetch_all_commits(per_page=100, max_pages=10, token=None):
-    commits = []
-    headers = {}
-    if token:
-        headers['Authorization'] = f'token {token}'
-    page = 1
-    while page <= max_pages:
-        url = f"{GITHUB_API_URL}?per_page={per_page}&page={page}"
-        resp = requests.get(url, headers=headers)
-        if resp.status_code != 200:
-            break
-        data = resp.json()
-        if not isinstance(data, list) or not data:
-            break
-        commits.extend(data)
-        page += 1
-    return commits
-
-def minute_key_from_date(date_str):
-    # date_str example: "2024-02-11T11:57:27Z"
-    dt = datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%SZ')
-    return dt.strftime('%Y-%m-%dT%H:%MZ')  # précision à la minute
-
-def aggregate_commits_by_minute(commits):
-    counts = defaultdict(int)
-    for c in commits:
-        try:
-            date_str = c['commit']['author']['date']
-        except (KeyError, TypeError):
+    for commit in commits_json:
+        date_string = commit.get("commit", {}).get("author", {}).get("date")
+        if not date_string:
             continue
-        minute_key = minute_key_from_date(date_str)
-        counts[minute_key] += 1
-    # Transformer en liste triée
-    result = [{"minute": k, "count": v} for k, v in sorted(counts.items())]
-    return result
+        date_object = datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%SZ')
+        minute = date_object.minute
+        minutes_count[minute] = minutes_count.get(minute, 0) + 1
 
-@app.route('/commits/')
-def commits_graph():
-    # Option A: récupérer sur tout le repo
-    commits = fetch_all_commits(per_page=100, max_pages=5)  # ajuste selon besoin
-    data = aggregate_commits_by_minute(commits)
-    return jsonify(data)
+    results = []
+    for minute, count in sorted(minutes_count.items()):
+        results.append({"minute": minute, "count": count})
 
+    return jsonify(results=results)
 
- 
 
 
   
