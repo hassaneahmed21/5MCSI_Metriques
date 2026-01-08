@@ -16,18 +16,23 @@ google.charts.load('current', {packages:['corechart']});
 google.charts.setOnLoadCallback(drawChart);
 
 function drawChart() {
-    fetch('/commits-data/')
+
+    fetch('https://api.github.com/repos/OpenRSI/5MCSI_Metriques/commits')
         .then(response => response.json())
-        .then(data => {
+        .then(commits => {
 
             var dataTable = new google.visualization.DataTable();
             dataTable.addColumn('number', 'Minute');
-            dataTable.addColumn('number', 'Nombre de commits');
+            dataTable.addColumn('number', 'Commits');
 
             let compteur = {};
 
-            data.results.forEach(entry => {
-                compteur[entry.minute] = (compteur[entry.minute] || 0) + 1;
+            commits.forEach(commit => {
+                let dateStr = commit.commit.author.date;
+                let date = new Date(dateStr);
+                let minute = date.getMinutes();
+
+                compteur[minute] = (compteur[minute] || 0) + 1;
             });
 
             for (let minute in compteur) {
@@ -37,7 +42,7 @@ function drawChart() {
             var options = {
                 title: 'Nombre de commits par minute',
                 hAxis: { title: 'Minute' },
-                vAxis: { title: 'Commits' },
+                vAxis: { title: 'Nombre de commits' },
                 legend: 'none'
             };
 
