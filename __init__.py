@@ -4,6 +4,8 @@ from flask import json
 from datetime import datetime
 from urllib.request import urlopen
 import sqlite3
+from urllib.request import Request, urlopen
+
                                                                                                                                        
 app = Flask(__name__)  
 
@@ -46,7 +48,13 @@ def extract_minutes(date_string):
 @app.route('/commits-data/')
 def commits_data():
     url = "https://api.github.com/repos/OpenRSI/5MCSI_Metriques/commits"
-    response = urlopen(url)
+
+    req = Request(
+        url,
+        headers={'User-Agent': 'Mozilla/5.0'}
+    )
+
+    response = urlopen(req)
     raw = response.read()
     commits = json.loads(raw.decode('utf-8'))
 
@@ -61,6 +69,7 @@ def commits_data():
             })
 
     return jsonify(results=results)
+
   @app.route('/commits/')
 def commits_graph():
     return render_template("commits.html")
